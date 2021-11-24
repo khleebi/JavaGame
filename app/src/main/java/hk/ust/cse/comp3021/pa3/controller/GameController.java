@@ -5,10 +5,7 @@ import hk.ust.cse.comp3021.pa3.util.NotImplementedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Controller for {@link hk.ust.cse.comp3021.pa3.InertiaFxGame}.
@@ -177,6 +174,26 @@ public class GameController {
      */
     @Nullable
     public Player[] getWinners() {
-        throw new NotImplementedException();
+        if (getGameBoard().getNumGems() != 0)
+            return null;
+
+        int winnerScore = -1;
+        var survivors = new ArrayList<GameState>();
+        var winners = new ArrayList<Player>();
+
+        for (var i = 0; i < getGameStates().length; i++) {
+            if (!getGameStates()[i].hasLost()) {
+                survivors.add(getGameStates()[i]);
+                if (survivors.get(i).getScore() > winnerScore)
+                    winnerScore = survivors.get(i).getScore();
+            }
+        }
+
+        for (GameState survivor : survivors) {
+            if (survivor.getScore() == winnerScore)
+                winners.add(survivor.getPlayer());
+        }
+
+        return winners.toArray(new Player[0]);
     }
 }
