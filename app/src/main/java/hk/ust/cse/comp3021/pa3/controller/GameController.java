@@ -109,7 +109,7 @@ public class GameController {
      * @param playerID  ID of the player to move.
      * @return An instance of {@link MoveResult} indicating the result of the action.
      */
-    public MoveResult processMove(@NotNull final Direction direction, int playerID) {
+    public synchronized MoveResult processMove(@NotNull final Direction direction, int playerID) {
         Objects.requireNonNull(direction);
 
         var result = this.getGameState(playerID).getGameBoardController().makeMove(direction, playerID);
@@ -173,27 +173,28 @@ public class GameController {
      * @return null if the game has not finished yet; otherwise emtpy array if there is no winners, or non-empty array if there are winners.
      */
     @Nullable
-    public Player[] getWinners() {
-        if (getGameBoard().getNumGems() != 0)
-            return null;
-
-        int winnerScore = -1;
-        var survivors = new ArrayList<GameState>();
-        var winners = new ArrayList<Player>();
-
-        for (var i = 0; i < getGameStates().length; i++) {
-            if (!getGameStates()[i].hasLost()) {
-                survivors.add(getGameStates()[i]);
-                if (survivors.get(i).getScore() > winnerScore)
-                    winnerScore = survivors.get(i).getScore();
-            }
-        }
-
-        for (GameState survivor : survivors) {
-            if (survivor.getScore() == winnerScore)
-                winners.add(survivor.getPlayer());
-        }
-
-        return winners.toArray(new Player[0]);
+    public synchronized Player[] getWinners() {
+        return null;
+//        if (getGameBoard().getNumGems() != 0)
+//            return null;
+//
+//        int winnerScore = -1;
+//        var survivors = new ArrayList<GameState>();
+//        var winners = new ArrayList<Player>();
+//
+//        for (var i = 0; i < getGameStates().length; i++) {
+//            if (!getGameStates()[i].hasLost()) {
+//                survivors.add(getGameStates()[i]);
+//                if (survivors.get(i).getScore() > winnerScore)
+//                    winnerScore = survivors.get(i).getScore();
+//            }
+//        }
+//
+//        for (GameState survivor : survivors) {
+//            if (survivor.getScore() == winnerScore)
+//                winners.add(survivor.getPlayer());
+//        }
+//
+//        return winners.toArray(new Player[0]);
     }
 }

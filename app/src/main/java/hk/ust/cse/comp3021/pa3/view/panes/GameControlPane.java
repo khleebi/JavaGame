@@ -78,9 +78,11 @@ public class GameControlPane extends GridPane implements GameUIComponent {
      * @param direction The {@link Direction} to move.
      */
     private void move(@NotNull Direction direction) {
-        var result = this.gameController.processMove(direction, player.getId());
-        if (result != null) {
-            this.moveEvent.get().handle(new MoveEvent(result, player.getId()));
+        synchronized ((getGameState().getGameBoard())) {
+            var result = this.gameController.processMove(direction, player.getId());
+            if (result != null) {
+                this.moveEvent.get().handle(new MoveEvent(result, player.getId()));
+            }
         }
     }
 
@@ -103,8 +105,12 @@ public class GameControlPane extends GridPane implements GameUIComponent {
      *
      * @param delegate The automated delegate to control the movement.
      */
-    public void delegateControl(MoveDelegate delegate) {
-
+    public synchronized void delegateControl(MoveDelegate delegate) {
+        this.moveDelegate = delegate;
+        moveDelegate.startDelegation(direction -> {
+            Platform.runLater(() -> move(direction));
+        });
+        disable();
     }
 
     /**
@@ -114,7 +120,10 @@ public class GameControlPane extends GridPane implements GameUIComponent {
      * should be enabled to allow control from GUI, i.e., call {@link GameControlPane#enable()}.
      */
     public void revokeControl() {
-
+        synchronized (getGameState().getGameBoard()) {
+            moveDelegate.stopDelegation();
+            enable();
+        }
     }
 
     /**
