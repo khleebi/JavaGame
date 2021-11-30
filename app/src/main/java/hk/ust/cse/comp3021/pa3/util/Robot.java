@@ -6,7 +6,6 @@ import hk.ust.cse.comp3021.pa3.model.MoveResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The Robot is an automated worker that can delegate the movement control of a player.
@@ -18,7 +17,7 @@ public class Robot implements MoveDelegate {
     private Thread thread;
     private boolean isRunning = true;
     private Direction prevStep = null;
-    private static final Object lock = new Object();
+    private static final Object LOCK = new Object();
 
     public enum Strategy {
         Random, Smart
@@ -78,10 +77,10 @@ public class Robot implements MoveDelegate {
             while (isRunning && !gameState.hasLost()) {
                 try {
                     Thread.sleep(timeIntervalGenerator.next());
-                }catch (InterruptedException ignored){
+                } catch (InterruptedException ignored) {
                 }
                 if (isRunning && !gameState.hasLost()) {
-                    synchronized (lock) {
+                    synchronized (LOCK) {
                         if (strategy == Strategy.Random)
                             makeMoveRandomly(processor);
                         else
@@ -106,7 +105,7 @@ public class Robot implements MoveDelegate {
     @Override
     public void stopDelegation() {
         isRunning = false;
-        while(thread.isAlive() && !isRunning) {
+        while(thread.isAlive()) {
             synchronized (gameState.getGameBoard()) {
                 gameState.getGameBoard().notifyAll();
             }
