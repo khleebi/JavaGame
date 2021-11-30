@@ -106,42 +106,40 @@ public class MainGamePane extends VBox implements GameUIComponent {
      *
      * @param e The corresponding {@link MoveEvent}.
      */
-    private void gameMoveHandler(MoveEvent e) {
-        synchronized (getGameBoard()) {
-            if (gameEnded) {
-                return;
+    private synchronized void gameMoveHandler(MoveEvent e) {
+        if (gameEnded) {
+            return;
+        }
+
+        // update the gameBoardPane with the latest game states.
+        this.gameBoardPane.showGameState(gameController.getGameStates());
+
+        // show lose dialog if the move event indicates a player loses and get kicked out of the game board.
+        if (e.getMoveResult() instanceof MoveResult.Valid.KickedOut) {
+            getPlayerPane(e.getPlayerID()).kickOut();
+            UIServices.showLoseDialog(gameController.getGameBoard().getPlayer(e.getPlayerID()));
+        }
+
+        // try to get winners from the game controller
+        var winners = gameController.getWinners();
+
+        // winners == null means the game is still on going.
+        if (winners != null) {
+            gameEnded = true;
+            // stop all enabled robots if exist
+            for (var playerPane :
+                    playerPanes) {
+                playerPane.stopRobot();
             }
 
-            // update the gameBoardPane with the latest game states.
-            this.gameBoardPane.showGameState(gameController.getGameStates());
-
-            // show lose dialog if the move event indicates a player loses and get kicked out of the game board.
-            if (e.getMoveResult() instanceof MoveResult.Valid.KickedOut) {
-                getPlayerPane(e.getPlayerID()).kickOut();
-                UIServices.showLoseDialog(gameController.getGameBoard().getPlayer(e.getPlayerID()));
+            // show win dialog for every winner.
+            for (var winner :
+                    winners) {
+                UIServices.showWinDialog(winner);
             }
 
-            // try to get winners from the game controller
-            var winners = gameController.getWinners();
-
-            // winners == null means the game is still on going.
-            if (winners != null) {
-                gameEnded = true;
-                // stop all enabled robots if exist
-                for (var playerPane :
-                        playerPanes) {
-                    playerPane.stopRobot();
-                }
-
-                // show win dialog for every winner.
-                for (var winner :
-                        winners) {
-                    UIServices.showWinDialog(winner);
-                }
-
-                // return to main menu
-                if (game != null) game.showMainMenu();
-            }
+            // return to main menu
+            if (game != null) game.showMainMenu();
         }
     }
 

@@ -15,13 +15,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * is used by {@link hk.ust.cse.comp3021.pa3.view.panes.GameControlPane#delegateControl(MoveDelegate)}.
  */
 public class Robot implements MoveDelegate {
-    private Thread thread;
-    private final AtomicBoolean stop = new AtomicBoolean();
-    private final AtomicBoolean invalidMove = new AtomicBoolean();
-    private Direction prevStep = null;
-    private int move;
-    private int score;
-
     public enum Strategy {
         Random, Smart
     }
@@ -76,31 +69,7 @@ public class Robot implements MoveDelegate {
      */
     @Override
     public void startDelegation(@NotNull MoveProcessor processor) {
-        synchronized (gameState.getGameBoard()) {
-            move = gameState.getNumMoves();
-            thread = new Thread(() -> {
-                while (!stop.get()) {
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    if (stop.get() || gameState.hasLost()) break;
-                    if (strategy == Strategy.Random) {
-                        makeMoveRandomly(processor);
-                    } else {
-                        makeMoveRandomly(processor);
-                    }
-                    move++;
-                    while (gameState.getNumMoves() != move) {
-                        Thread.yield();
-                        if (stop.get() || gameState.hasLost()) break;
-                    }
-                }
-                stop.set(false);
-            });
-            thread.start();
-        }
+
     }
 
     /**
@@ -109,14 +78,7 @@ public class Robot implements MoveDelegate {
      */
     @Override
     public void stopDelegation() {
-        synchronized (gameState.getGameBoard()) {
-            stop.set(true);
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+
     }
 
     private MoveResult tryMove(Direction direction) {
@@ -140,40 +102,24 @@ public class Robot implements MoveDelegate {
      * @param processor The processor to make movements.
      */
     private void makeMoveRandomly(MoveProcessor processor) {
-        synchronized (gameState.getGameBoard()) {
-            var directions = new ArrayList<>(Arrays.asList(Direction.values()));
-            Collections.shuffle(directions);
-            Direction aliveDirection = null;
-            Direction deadDirection = null;
-            for (var direction :
-                    directions) {
-                var result = tryMove(direction);
-                if (result instanceof MoveResult.Valid.Alive) {
-                    aliveDirection = direction;
-                } else if (result instanceof MoveResult.Valid.Dead) {
-                    deadDirection = direction;
-                }
-            }
-            if (aliveDirection != null) {
-                System.out.println("a" + aliveDirection);
-                processor.move(aliveDirection);
-            } else if (deadDirection != null) {
-                System.out.println("d" + deadDirection);
-                processor.move(deadDirection);
+        var directions = new ArrayList<>(Arrays.asList(Direction.values()));
+        Collections.shuffle(directions);
+        Direction aliveDirection = null;
+        Direction deadDirection = null;
+        for (var direction :
+                directions) {
+            var result = tryMove(direction);
+            if (result instanceof MoveResult.Valid.Alive) {
+                aliveDirection = direction;
+            } else if (result instanceof MoveResult.Valid.Dead) {
+                deadDirection = direction;
             }
         }
-    }
-
-    private Direction getBackStep(Direction thisStep) {
-        if (thisStep == Direction.UP)
-            return Direction.DOWN;
-        if (thisStep == Direction.DOWN)
-            return Direction.UP;
-        if (thisStep == Direction.LEFT)
-            return Direction.RIGHT;
-        if (thisStep == Direction.RIGHT)
-            return Direction.LEFT;
-        return null;
+        if (aliveDirection != null) {
+            processor.move(aliveDirection);
+        } else if (deadDirection != null) {
+            processor.move(deadDirection);
+        }
     }
 
     /**
@@ -188,29 +134,8 @@ public class Robot implements MoveDelegate {
      *
      * @param processor The processor to make movements.
      */
-    private synchronized void makeMoveSmartly(MoveProcessor processor) {
-        var directions = new ArrayList<>(Arrays.asList(Direction.values()));
-        Collections.shuffle(directions);
-        Direction aliveDirection = null;
-        for (var direction :
-                directions) {
-            if (direction != getBackStep(prevStep)) {
-                var result = tryMove(direction);
-                if (result instanceof MoveResult.Valid.Alive) {
-                    aliveDirection = direction;
-                }
-            }
-        }
-        if (aliveDirection != null) {
-            //System.out.println("a" + aliveDirection);
-            prevStep = aliveDirection;
-            processor.move(aliveDirection);
-        } else {
-            prevStep = getBackStep(prevStep);
-            invalidMove.set(true);
-            //System.out.println("b" + prevStep);
-            processor.move(Objects.requireNonNull(prevStep));
-        }
+    private void makeMoveSmartly(MoveProcessor processor) {
+
     }
 
 }
