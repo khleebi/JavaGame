@@ -77,7 +77,7 @@ public class Robot implements MoveDelegate {
         thread = new Thread(() -> {
             while (isRunning && !gameState.hasLost()) {
                 try {
-                    thread.sleep(1);
+                    Thread.sleep(timeIntervalGenerator.next());
                 }catch (InterruptedException ignored){
                 }
                 if (isRunning && !gameState.hasLost()) {
@@ -88,7 +88,7 @@ public class Robot implements MoveDelegate {
                             makeMoveSmartly(processor);
                         synchronized (gameState.getGameBoard()) {
                             try {
-                                if (isRunning) gameState.getGameBoard().wait();
+                                if (isRunning && !gameState.hasLost()) gameState.getGameBoard().wait();
                             } catch (InterruptedException ignored){
                             }
                         }
@@ -179,7 +179,6 @@ public class Robot implements MoveDelegate {
      * @param processor The processor to make movements.
      */
     private void makeMoveSmartly(MoveProcessor processor) {
-        Direction mov;
         var directions = new ArrayList<>(Arrays.asList(Direction.values()));
         Collections.shuffle(directions);
         Direction aliveDirection = null;
@@ -195,14 +194,9 @@ public class Robot implements MoveDelegate {
         if (aliveDirection != null) {
             prevStep = aliveDirection;
             processor.move(aliveDirection);
-            mov = aliveDirection;
         } else {
             prevStep = getBackStep(prevStep);
             processor.move(Objects.requireNonNull(prevStep));
-            mov = prevStep;
-        }
-        if (tryMove(mov) instanceof MoveResult.Valid.Dead){
-            System.out.println("Pause!");
         }
     }
 
