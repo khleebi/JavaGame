@@ -15,6 +15,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * is used by {@link hk.ust.cse.comp3021.pa3.view.panes.GameControlPane#delegateControl(MoveDelegate)}.
  */
 public class Robot implements MoveDelegate {
+    private Thread thread;
+    private boolean isRunning = true;
+    private Direction prevStep = null;
+    private static final Object lock = new Object();
+
     public enum Strategy {
         Random, Smart
     }
@@ -69,7 +74,29 @@ public class Robot implements MoveDelegate {
      */
     @Override
     public void startDelegation(@NotNull MoveProcessor processor) {
-
+        thread = new Thread(() -> {
+            while (isRunning && !gameState.hasLost()) {
+                try {
+                    thread.sleep(1);
+                }catch (InterruptedException ignored){
+                }
+                if (isRunning && !gameState.hasLost()) {
+                    synchronized (lock) {
+                        if (strategy == Strategy.Random)
+                            makeMoveRandomly(processor);
+                        else
+                            makeMoveSmartly(processor);
+                        synchronized (gameState.getGameBoard()) {
+                            try {
+                                if (isRunning) gameState.getGameBoard().wait();
+                            } catch (InterruptedException ignored){
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        thread.start();
     }
 
     /**
@@ -78,7 +105,12 @@ public class Robot implements MoveDelegate {
      */
     @Override
     public void stopDelegation() {
-
+        isRunning = false;
+        while(thread.isAlive() && !isRunning) {
+            synchronized (gameState.getGameBoard()) {
+                gameState.getGameBoard().notifyAll();
+            }
+        }
     }
 
     private MoveResult tryMove(Direction direction) {
@@ -122,6 +154,18 @@ public class Robot implements MoveDelegate {
         }
     }
 
+    private Direction getBackStep(Direction thisStep) {
+        if (thisStep == Direction.UP)
+            return Direction.DOWN;
+        if (thisStep == Direction.DOWN)
+            return Direction.UP;
+        if (thisStep == Direction.LEFT)
+            return Direction.RIGHT;
+        if (thisStep == Direction.RIGHT)
+            return Direction.LEFT;
+        return null;
+    }
+
     /**
      * TODO implement this method
      * The robot moves with a smarter strategy compared to random.
@@ -135,7 +179,31 @@ public class Robot implements MoveDelegate {
      * @param processor The processor to make movements.
      */
     private void makeMoveSmartly(MoveProcessor processor) {
-
+        Direction mov;
+        var directions = new ArrayList<>(Arrays.asList(Direction.values()));
+        Collections.shuffle(directions);
+        Direction aliveDirection = null;
+        for (var direction :
+                directions) {
+            if (direction != getBackStep(prevStep)) {
+                var result = tryMove(direction);
+                if (result instanceof MoveResult.Valid.Alive) {
+                    aliveDirection = direction;
+                }
+            }
+        }
+        if (aliveDirection != null) {
+            prevStep = aliveDirection;
+            processor.move(aliveDirection);
+            mov = aliveDirection;
+        } else {
+            prevStep = getBackStep(prevStep);
+            processor.move(Objects.requireNonNull(prevStep));
+            mov = prevStep;
+        }
+        if (tryMove(mov) instanceof MoveResult.Valid.Dead){
+            System.out.println("Pause!");
+        }
     }
 
 }

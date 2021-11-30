@@ -37,7 +37,7 @@ public class GameBoardController {
      * @param playerId The id of the player to kick out.
      */
     public void kickOut(int playerId) {
-
+        gameBoard.getPlayer(playerId).getOwner().setEntity(null);
     }
 
     /**
@@ -72,31 +72,33 @@ public class GameBoardController {
      */
     @Nullable
     public MoveResult makeMove(@NotNull final Direction direction, int playerID) {
-        Objects.requireNonNull(direction);
+        synchronized (gameBoard) {
+            Objects.requireNonNull(direction);
 
 
-        var playerOwner = gameBoard.getPlayer(playerID).getOwner();
-        if (playerOwner == null) {
-            return null;
-        }
-
-        final var origPosition = playerOwner.getPosition();
-        final var tryMoveResult = tryMove(origPosition, direction, playerID);
-        if (tryMoveResult instanceof MoveResult.Valid.Alive alive) {
-            // Clear all outstanding entities that the player would've picked up
-            for (@NotNull final var gemPos : alive.collectedGems) {
-                gameBoard.getEntityCell(gemPos).setEntity(null);
-            }
-            for (@NotNull final var extraLifePos : alive.collectedExtraLives) {
-                gameBoard.getEntityCell(extraLifePos).setEntity(null);
+            var playerOwner = gameBoard.getPlayer(playerID).getOwner();
+            if (playerOwner == null) {
+                return null;
             }
 
-            // Move the player directly over
-            assert alive.newPosition != null;
-            gameBoard.getEntityCell(alive.newPosition).setEntity(gameBoard.getPlayer(playerID));
-        }
+            final var origPosition = playerOwner.getPosition();
+            final var tryMoveResult = tryMove(origPosition, direction, playerID);
+            if (tryMoveResult instanceof MoveResult.Valid.Alive alive) {
+                // Clear all outstanding entities that the player would've picked up
+                for (@NotNull final var gemPos : alive.collectedGems) {
+                    gameBoard.getEntityCell(gemPos).setEntity(null);
+                }
+                for (@NotNull final var extraLifePos : alive.collectedExtraLives) {
+                    gameBoard.getEntityCell(extraLifePos).setEntity(null);
+                }
 
-        return tryMoveResult;
+                // Move the player directly over
+                assert alive.newPosition != null;
+                gameBoard.getEntityCell(alive.newPosition).setEntity(gameBoard.getPlayer(playerID));
+            }
+            gameBoard.notifyAll();
+            return tryMoveResult;
+        }
     }
 
 

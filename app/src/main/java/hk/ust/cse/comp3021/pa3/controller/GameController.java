@@ -177,6 +177,33 @@ public class GameController {
      */
     @Nullable
     public Player[] getWinners() {
-        throw new NotImplementedException();
+        return null;
+//        try {
+//            getGameBoard().getPlayers();
+//        } catch (IllegalArgumentException ignored) {
+//            return new Player[0];
+//        }
+//
+//        if (getGameBoard().getNumGems() != 0)
+//            return null;
+//
+//        int winnerScore = -1;
+//        var survivors = new ArrayList<GameState>();
+//        var winners = new ArrayList<Player>();
+//
+//        for (var i = 0; i < getGameStates().length; i++) {
+//            if (!getGameStates()[i].hasLost()) {
+//                survivors.add(getGameStates()[i]);
+//                if (getGameStates()[i].getScore() > winnerScore)
+//                    winnerScore = getGameStates()[i].getScore();
+//            }
+//        }
+//
+//        for (GameState survivor : survivors) {
+//            if (survivor.getScore() == winnerScore)
+//                winners.add(survivor.getPlayer());
+//        }
+//
+//        return winners.toArray(new Player[0]);
     }
 }
